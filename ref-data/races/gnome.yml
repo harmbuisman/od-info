@@ -14,6 +14,7 @@ perks:
   extra_barren_max_population: 5
   food_consumption: -20
   gem_production: 5
+  tech_production: 5
 units:
   - name: Suicide Squad
     cost:
@@ -45,7 +46,7 @@ units:
       platinum: 750
       ore: 550
     power:
-      offense: 6
+      offense: 7
       defense: 3
     perks:
-      offense_staggered_land_range: 75;0.5,85;1
+      offense_staggered_land_range: 85;0.5

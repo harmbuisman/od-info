@@ -1,0 +1,1 @@
+flask --app flask_app run

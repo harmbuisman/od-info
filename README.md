@@ -20,7 +20,7 @@ It tells you to execute this in a Terminal window:
 Next step is installing Python3 (also in the Terminal window):
 
     brew install python3
-
+    
 ### Python3 packages
 *Note that there's a whole thing about "virtual environments" that is good practice
 if you run or develop different Python applications. If this is the only Python
@@ -43,6 +43,8 @@ This installs these libraries:
  - PyYAML (to load configuration files)
  - bs4 (Beautiful Soup, to scrape information from webpages)
  - Pillow and matplotlib (for graphs)
+
+conda create --name od-info --file requirements.txt
 
 ### Download files
 Download the whole project from here and put it somewhere on your local disk.

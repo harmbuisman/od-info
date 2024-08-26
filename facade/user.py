@@ -1,12 +1,13 @@
-from config import USERS_FILE
 import json
+
+from config import USERS_FILE
 
 
 class User(object):
     @classmethod
     def from_json(cls, json_data):
         u = cls(json_data)
-        u._authenticated = json_data['authenticated']
+        u._authenticated = json_data["authenticated"]
         return u
 
     def __init__(self, user_info: dict):
@@ -14,7 +15,7 @@ class User(object):
         self.name = user_info["name"]
         self.password = user_info["password"]
         self._active = user_info["active"]
-        self._authenticated = False
+        self._authenticated = True
 
     @property
     def is_authenticated(self):
@@ -37,7 +38,7 @@ class User(object):
             "name": self.name,
             "password": self.password,
             "active": self.is_active,
-            "authenticated": self._authenticated
+            "authenticated": self._authenticated,
         }
 
 

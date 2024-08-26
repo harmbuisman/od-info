@@ -1,0 +1,43 @@
+# python -m pip install -e .["dev"]
+
+[project]
+name = "od-info"
+version = "0.1.0"
+description = "Your project description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask",
+    "jinja2",
+    "PyYAML",
+    "bs4",
+    "pillow",
+    "matplotlib",
+    "requests",
+    "wtforms",
+    "flask_sqlalchemy",
+    "flask-login",
+]
+
+[tool.pytest.ini_options]
+minversion = "5.4.3"
+
+[tool.ruff]
+select = [
+    "E4",  # Ruff defaults for error handling
+    "E7",
+    "E9",
+    "F",   # Additional checks for logic errors
+]
+line-length = 120
+target-version = "py311"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=5.4.3",
+    "ruff==0.6.1",
+]
