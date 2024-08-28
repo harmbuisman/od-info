@@ -1,10 +1,11 @@
-from sqlalchemy import Integer, String, DateTime, ForeignKey, Float, func, JSON
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
 
-from domain.domainhelper import Buildings, Land, Technology, Magic
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from domain.domainhelper import Buildings, Land, Magic, Technology
 from domain.timeutils import hours_since
 
 
@@ -13,45 +14,43 @@ class Base(DeclarativeBase):
 
 
 class TimestampedOpsMixin(object):
-    dominion_id = mapped_column('dominion', ForeignKey('Dominions.code'))
+    dominion_id = mapped_column("dominion", ForeignKey("Dominions.code"))
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow())
-    __mapper_args__ = {'primary_key': [dominion_id, timestamp]}
+    __mapper_args__ = {"primary_key": [dominion_id, timestamp]}
 
 
 class Dominion(Base):
-    __tablename__ = 'Dominions'
+    __tablename__ = "Dominions"
 
     code: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
     realm: Mapped[int] = mapped_column(Integer)
-    race: Mapped[str] = mapped_column('race', String(200))
-    player: Mapped[str] = mapped_column(String(200), default='?')
-    role: Mapped[str] = mapped_column(String(12), default='unknown')
+    race: Mapped[str] = mapped_column("race", String(200))
+    player: Mapped[str] = mapped_column(String(200), default="?")
+    role: Mapped[str] = mapped_column(String(12), default="unknown")
     last_op: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    history: Mapped[List['DominionHistory']] = relationship('DominionHistory',
-                                                            back_populates='dom',
-                                                            order_by='DominionHistory.timestamp.desc()')
-    clear_sight: Mapped[List['ClearSight']] = relationship('ClearSight',
-                                                  back_populates='dom',
-                                                  order_by='ClearSight.timestamp.desc()')
-    barracks_spy: Mapped[List['BarracksSpy']] = relationship('BarracksSpy',
-                                                         back_populates='dom',
-                                                         order_by='BarracksSpy.timestamp.desc()')
-    castle_spy: Mapped[List['CastleSpy']] = relationship('CastleSpy',
-                                                     back_populates='dom',
-                                                     order_by='CastleSpy.timestamp.desc()')
-    land_spy: Mapped[List['LandSpy']] = relationship('LandSpy',
-                                                     back_populates='dom',
-                                                     order_by='LandSpy.timestamp.desc()')
-    revelation: Mapped[List['Revelation']] = relationship('Revelation',
-                                                     back_populates='dom',
-                                                     order_by='Revelation.timestamp.desc()')
-    survey_dominion: Mapped[List['SurveyDominion']] = relationship('SurveyDominion',
-                                                     back_populates='dom',
-                                                     order_by='SurveyDominion.timestamp.desc()')
-    vision: Mapped[List['Vision']] = relationship('Vision',
-                                                     back_populates='dom',
-                                                     order_by='Vision.timestamp.desc()')
+    history: Mapped[List["DominionHistory"]] = relationship(
+        "DominionHistory", back_populates="dom", order_by="DominionHistory.timestamp.desc()"
+    )
+    clear_sight: Mapped[List["ClearSight"]] = relationship(
+        "ClearSight", back_populates="dom", order_by="ClearSight.timestamp.desc()"
+    )
+    barracks_spy: Mapped[List["BarracksSpy"]] = relationship(
+        "BarracksSpy", back_populates="dom", order_by="BarracksSpy.timestamp.desc()"
+    )
+    castle_spy: Mapped[List["CastleSpy"]] = relationship(
+        "CastleSpy", back_populates="dom", order_by="CastleSpy.timestamp.desc()"
+    )
+    land_spy: Mapped[List["LandSpy"]] = relationship(
+        "LandSpy", back_populates="dom", order_by="LandSpy.timestamp.desc()"
+    )
+    revelation: Mapped[List["Revelation"]] = relationship(
+        "Revelation", back_populates="dom", order_by="Revelation.timestamp.desc()"
+    )
+    survey_dominion: Mapped[List["SurveyDominion"]] = relationship(
+        "SurveyDominion", back_populates="dom", order_by="SurveyDominion.timestamp.desc()"
+    )
+    vision: Mapped[List["Vision"]] = relationship("Vision", back_populates="dom", order_by="Vision.timestamp.desc()")
 
     @property
     def current_land(self) -> int:
@@ -67,12 +66,21 @@ class Dominion(Base):
         if self.last_cs and self.last_barracks:
             cs_age = hours_since(self.last_cs.timestamp)
             bs_age = hours_since(self.last_barracks.timestamp)
+            if self.name == "Invade Broken, Watch for Finger":
+                print(">>>> Invade Broken, Watch for Finger")
+                print(self.last_cs.timestamp)
+                print(self.last_barracks.timestamp)
+                print(cs_age)
+                print(bs_age)
+
             if (cs_age < 1) or (cs_age <= bs_age):
                 result = self.last_cs.military
                 # Add remaining training troops from last BS
                 for i in range(1, 5):
-                    result[f'unit{i}'] += self.last_barracks.aged_amount_training_for_unit(i)
-                result['paid_until'] = self.last_barracks.paid_until
+                    result[f"unit{i}"] += self.last_barracks.aged_amount_training_for_unit(i, cs_age)
+                    if self.name == "Invade Broken, Watch for Finger":
+                        print(f"unit{i}: {result[f'unit{i}']}")
+                result["paid_until"] = self.last_barracks.paid_until
             else:
                 result = self.last_barracks.military
         elif self.last_cs:
@@ -85,9 +93,9 @@ class Dominion(Base):
     def navy(self) -> dict | None:
         if self.last_cs and self.last_survey:
             return {
-                'docks': self.last_survey.dock,
-                'boats': self.last_cs.resource_boats,
-                'timestamp': min(self.last_cs.timestamp, self.last_survey.timestamp)
+                "docks": self.last_survey.dock,
+                "boats": self.last_cs.resource_boats,
+                "timestamp": min(self.last_cs.timestamp, self.last_survey.timestamp),
             }
         else:
             return None
@@ -145,54 +153,54 @@ class Dominion(Base):
         return hours_since(self.last_op)
 
     def __repr__(self):
-        return f'Dominion({self.code}, {self.name}, {self.realm}, {self.race}, {self.player}, {self.role}, {self.last_op})'
+        return (
+            f"Dominion({self.code}, {self.name}, {self.realm}, {self.race}, {self.player}, {self.role}, {self.last_op})"
+        )
 
 
 class DominionHistory(TimestampedOpsMixin, Base):
-    __tablename__ = 'DominionHistory'
-    dom: Mapped['Dominion'] = relationship(back_populates='history')
+    __tablename__ = "DominionHistory"
+    dom: Mapped["Dominion"] = relationship(back_populates="history")
     land: Mapped[int] = mapped_column(Integer)
     networth: Mapped[int] = mapped_column(Integer)
 
     def __repr__(self):
-        return f'DominionHistory({self.dominion_id}, {self.timestamp}, {self.land}, {self.networth})'
+        return f"DominionHistory({self.dominion_id}, {self.timestamp}, {self.land}, {self.networth})"
 
 
 class BarracksSpy(TimestampedOpsMixin, Base):
     BS_UNCERTAINTY: float = 0.85
 
-    __tablename__ = 'BarracksSpy'
-    dom: Mapped['Dominion'] = relationship(back_populates='barracks_spy')
+    __tablename__ = "BarracksSpy"
+    dom: Mapped["Dominion"] = relationship(back_populates="barracks_spy")
     draftees: Mapped[int] = mapped_column(Integer, default=0)
     home_unit1: Mapped[int] = mapped_column(Integer, default=0)
     home_unit2: Mapped[int] = mapped_column(Integer, default=0)
     home_unit3: Mapped[int] = mapped_column(Integer, default=0)
     home_unit4: Mapped[int] = mapped_column(Integer, default=0)
     training: Mapped[dict] = mapped_column(JSON, default=JSON.NULL)
-    returning: Mapped[dict] = mapped_column('return', JSON, default=JSON.NULL)
+    returning: Mapped[dict] = mapped_column("return", JSON, default=JSON.NULL)
 
     def amount_training(self, unit_type_nr: int) -> int:
         if self.training:
-            key = f'unit{unit_type_nr}'
+            key = f"unit{unit_type_nr}"
             return sum(self.training[key].values()) if key in self.training else 0
         else:
             return 0
 
-    def aged_amount_training_for_unit(self, unit_type_nr: int) -> int:
-        key = f'unit{unit_type_nr}'
-        age = hours_since(self.timestamp)
+    def aged_amount_training_for_unit(self, unit_type_nr: int, cs_age: int) -> int:
+        key = f"unit{unit_type_nr}"
+        bs_age = hours_since(self.timestamp)
+        age = bs_age - cs_age
+
         if self.training and key in self.training:
             return sum([amount for tick, amount in self.training[key].items() if int(tick) - age > 0])
         else:
             return 0
 
-    @property
-    def aged_amount_training(self) -> int:
-        return sum([self.aged_amount_training_for_unit(i) for i in range(1, 5)])
-
     def amount_returning(self, unit_type_nr: int) -> int:
         if self.returning:
-            key = f'unit{unit_type_nr}'
+            key = f"unit{unit_type_nr}"
             return sum(self.returning[key].values()) if key in self.returning else 0
         else:
             return 0
@@ -200,25 +208,25 @@ class BarracksSpy(TimestampedOpsMixin, Base):
     @property
     def military(self) -> dict:
         def calc_unit(nr: int):
-            home = getattr(self, f'home_unit{nr}') / BarracksSpy.BS_UNCERTAINTY
+            home = getattr(self, f"home_unit{nr}") / BarracksSpy.BS_UNCERTAINTY
             away = self.amount_returning(nr) * BarracksSpy.BS_UNCERTAINTY
             training = self.amount_training(nr) if self.paid_until_for_unit(nr) > 0 else 0
             return home + away + training
 
         return {
-            'unit1': calc_unit(1),
-            'unit2': calc_unit(2),
-            'unit3': calc_unit(3),
-            'unit4': calc_unit(4),
-            'draftees': self.draftees,
-            'timestamp': self.timestamp,
-            'paid_until': self.paid_until
+            "unit1": calc_unit(1),
+            "unit2": calc_unit(2),
+            "unit3": calc_unit(3),
+            "unit4": calc_unit(4),
+            "draftees": self.draftees,
+            "timestamp": self.timestamp,
+            "paid_until": self.paid_until,
         }
 
     def paid_until_for_unit(self, nr):
         age = hours_since(self.timestamp)
         max_ticks = 0
-        key = f'unit{nr}'
+        key = f"unit{nr}"
         if key in self.training:
             max_ticks = max(max_ticks, max([int(t) for t in self.training[key]]))
         return max(0, max_ticks - age)
@@ -228,16 +236,18 @@ class BarracksSpy(TimestampedOpsMixin, Base):
         return max([self.paid_until_for_unit(i) for i in range(1, 5)])
 
     def __repr__(self):
-        return (f'BarracksSpy({self.dominion_id}, '
-                f'{self.timestamp}, {self.draftees}, '
-                f'{self.home_unit1}, {self.home_unit2}, '
-                f'{self.home_unit3}, {self.home_unit4}, '
-                f'{self.training}, {self.returning})')
+        return (
+            f"BarracksSpy({self.dominion_id}, "
+            f"{self.timestamp}, {self.draftees}, "
+            f"{self.home_unit1}, {self.home_unit2}, "
+            f"{self.home_unit3}, {self.home_unit4}, "
+            f"{self.training}, {self.returning})"
+        )
 
 
 class CastleSpy(TimestampedOpsMixin, Base):
-    __tablename__ = 'CastleSpy'
-    dom: Mapped['Dominion'] = relationship(back_populates='castle_spy')
+    __tablename__ = "CastleSpy"
+    dom: Mapped["Dominion"] = relationship(back_populates="castle_spy")
     science_points: Mapped[int] = mapped_column(Integer, default=0)
     science_rating: Mapped[float] = mapped_column(Float, default=0)
     keep_points: Mapped[int] = mapped_column(Integer, default=0)
@@ -253,8 +263,8 @@ class CastleSpy(TimestampedOpsMixin, Base):
 
 
 class ClearSight(TimestampedOpsMixin, Base):
-    __tablename__ = 'ClearSight'
-    dom: Mapped['Dominion'] = relationship(back_populates='clear_sight')
+    __tablename__ = "ClearSight"
+    dom: Mapped["Dominion"] = relationship(back_populates="clear_sight")
     land: Mapped[int] = mapped_column(Integer)
     peasants: Mapped[int] = mapped_column(Integer)
     networth: Mapped[int] = mapped_column(Integer)
@@ -281,12 +291,12 @@ class ClearSight(TimestampedOpsMixin, Base):
     @hybrid_property
     def military(self) -> dict:
         return {
-            'unit1': self.military_unit1,
-            'unit2': self.military_unit2,
-            'unit3': self.military_unit3,
-            'unit4': self.military_unit4,
-            'draftees': self.military_draftees,
-            'timestamp': self.timestamp
+            "unit1": self.military_unit1,
+            "unit2": self.military_unit2,
+            "unit3": self.military_unit3,
+            "unit4": self.military_unit4,
+            "draftees": self.military_draftees,
+            "timestamp": self.timestamp,
         }
 
     @hybrid_property
@@ -295,8 +305,8 @@ class ClearSight(TimestampedOpsMixin, Base):
 
 
 class LandSpy(TimestampedOpsMixin, Base):
-    __tablename__ = 'LandSpy'
-    dom: Mapped['Dominion'] = relationship(back_populates='land_spy')
+    __tablename__ = "LandSpy"
+    dom: Mapped["Dominion"] = relationship(back_populates="land_spy")
     total: Mapped[int] = mapped_column(Integer)
     barren: Mapped[int] = mapped_column(Integer)
     constructed: Mapped[int] = mapped_column(Integer)
@@ -318,18 +328,18 @@ class LandSpy(TimestampedOpsMixin, Base):
 
 
 class Revelation(Base):
-    __tablename__ = 'Revelation'
-    dominion_id = mapped_column('dominion', ForeignKey('Dominions.code'))
+    __tablename__ = "Revelation"
+    dominion_id = mapped_column("dominion", ForeignKey("Dominions.code"))
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow())
-    dom: Mapped['Dominion'] = relationship(back_populates='revelation')
+    dom: Mapped["Dominion"] = relationship(back_populates="revelation")
     spell: Mapped[str] = mapped_column(String(80))
     duration: Mapped[int] = mapped_column(Integer)
-    __mapper_args__ = {'primary_key': [dominion_id, timestamp, spell]}
+    __mapper_args__ = {"primary_key": [dominion_id, timestamp, spell]}
 
 
 class SurveyDominion(TimestampedOpsMixin, Base):
-    __tablename__ = 'SurveyDominion'
-    dom: Mapped['Dominion'] = relationship(back_populates='survey_dominion')
+    __tablename__ = "SurveyDominion"
+    dom: Mapped["Dominion"] = relationship(back_populates="survey_dominion")
     home: Mapped[int] = mapped_column(Integer)
     alchemy: Mapped[int] = mapped_column(Integer, default=0)
     farm: Mapped[int] = mapped_column(Integer, default=0)
@@ -354,33 +364,33 @@ class SurveyDominion(TimestampedOpsMixin, Base):
 
 
 class Vision(TimestampedOpsMixin, Base):
-    __tablename__ = 'Vision'
-    dom: Mapped['Dominion'] = relationship(back_populates='vision')
+    __tablename__ = "Vision"
+    dom: Mapped["Dominion"] = relationship(back_populates="vision")
     techs: Mapped[Optional[dict]] = mapped_column(JSON, default=JSON.NULL)
 
 
 class TownCrier(Base):
-    __tablename__ = 'TownCrier'
+    __tablename__ = "TownCrier"
 
     timestamp: Mapped[datetime] = mapped_column(DateTime)
     origin: Mapped[int] = mapped_column(Integer)
     origin_name: Mapped[str] = mapped_column(String(200))
     target: Mapped[int] = mapped_column(Integer)
     target_name: Mapped[str] = mapped_column(String(200))
-    event_type: Mapped[str] = mapped_column(String(200), default='other')
+    event_type: Mapped[str] = mapped_column(String(200), default="other")
     amount: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(String(300))
 
-    __mapper_args__ = {'primary_key': [timestamp, origin, event_type, target]}
+    __mapper_args__ = {"primary_key": [timestamp, origin, event_type, target]}
 
 
 class SchemaVersion(Base):
-    __tablename__ = 'SchemaVersion'
+    __tablename__ = "SchemaVersion"
 
     timestamp: Mapped[datetime] = mapped_column(DateTime)
     version: Mapped[str] = mapped_column(String(30))
 
-    __mapper_args__ = {'primary_key': [timestamp]}
+    __mapper_args__ = {"primary_key": [timestamp]}
 
 
 def schema_version(db) -> str:

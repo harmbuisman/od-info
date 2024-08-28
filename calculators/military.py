@@ -170,25 +170,23 @@ class MilitaryCalculator(object):
     @property
     def safe_op(self) -> int:
         """Only calc based on attack units (types 1 & 4)"""
-        # Correct for weird races like Troll
+        # # Correct for weird races like Troll
         if self.race.name in ("Troll",):
             return self.five_over_four[0]
 
-        offense = self.op_of(1)
-        offense += self.op_of(4)
-        offense *= 1 + self.offense_bonus
+        offense = self.op_of(1, with_bonus=True)
+        offense += self.op_of(4, with_bonus=True)
         return round(offense)
 
     @property
     def safe_dp(self) -> int:
         """Only calc based on defense units (types 2 & 3)"""
-        # Correct for weird races like Troll
+        # # Correct for weird races like Troll
         if self.race.name in ("Troll",):
             return self.five_over_four[1]
 
-        defense = self.dp_of(2)
-        defense += self.dp_of(3)
-        defense *= 1 + self.defense_bonus
+        defense = self.dp_of(2, with_bonus=True)
+        defense += self.dp_of(3, with_bonus=True)
         return round(defense)
 
     def safe_op_versus(self, enemy_op: int) -> tuple[int, int]:
@@ -256,7 +254,12 @@ class MilitaryCalculator(object):
     @property
     def five_over_four(self) -> tuple:
         if not self._five_four_dp:
-            logger.debug(f"Starting five_over_four for dom {self.dom.code} {self.dom.race} {self.dom.name}")
+            log = False
+            if self.dom.race == "Dwarf":
+                log = True
+
+            if log:
+                logger.debug(f"Starting five_over_four for dom {self.dom.code} {self.dom.race} {self.dom.name}")
             if self.flex_unit:
                 flex_unit_nr = self.race.nr_of_unit(self.flex_unit)
                 k = 5 / 4 * self.op / self.dp
@@ -266,8 +269,15 @@ class MilitaryCalculator(object):
                 op_no_flex = self.op - self.op_of(flex_unit_nr, with_bonus=True)
                 dp_no_flex = self.dp - self.dp_of(flex_unit_nr, with_bonus=True)
                 dp_flex = round((op_no_flex + (total_flex * op_eff) - (k * dp_no_flex)) / (op_eff + (k * dp_eff)) + 0.5)
-                print(k, dp_flex, total_flex, op_no_flex, dp_no_flex)
-                self._five_four_dp = round(self.dp - (dp_flex * dp_eff), 2)  ## hier moet nog de turtle vanaf
+                if log:
+                    print(k, dp_flex, total_flex, op_no_flex, dp_no_flex)
+                    print(self.flex_unit.name)
+                    for i in range(1, 5):
+                        print(i, self.amount(i), self.op_of(i, with_bonus=True), self.dp_of(i, with_bonus=True))
+
+                turtle = self.dp_of(4, with_bonus=True)
+
+                self._five_four_dp = round(self.dp - (dp_flex * dp_eff) - turtle, 2)  ## hier moet nog de turtle vanaf
                 self._five_four_op = round(5 / 4 * self._five_four_dp, 2)
             else:
                 self._five_four_op = trunc(self.op)
@@ -275,7 +285,8 @@ class MilitaryCalculator(object):
                 for unit_type in self.race.hybrid_units:
                     dp -= self.dp_of(self.race.nr_of_unit(unit_type), True)
                 self._five_four_dp = trunc(dp)
-            logger.debug(f"op: {self._five_four_op}, 5/4 dp: {self._five_four_dp * 5 / 4}")
+            if log:
+                logger.debug(f"op: {self._five_four_op}, 5/4 dp: {self._five_four_dp * 5 / 4}")
             if self._five_four_op > (round(self._five_four_dp * 5 / 4, 2)):
                 logger.warning(f"op: {self._five_four_op}, 5/4 dp: {round(self._five_four_dp * 5/4, 2)}")
         return round(self._five_four_op), round(self._five_four_dp)
