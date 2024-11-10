@@ -273,12 +273,46 @@ class MilitaryCalculator(object):
                     print(k, dp_flex, total_flex, op_no_flex, dp_no_flex)
                     print(self.flex_unit.name)
                     for i in range(1, 5):
-                        print(i, self.amount(i), self.op_of(i, with_bonus=True), self.dp_of(i, with_bonus=True))
+                        print(
+                            i,
+                            self.amount(i),
+                            round(self.op_of(i, with_bonus=True), 0),
+                            round(self.dp_of(i, with_bonus=True), 0),
+                        )
 
                 turtle = self.dp_of(4, with_bonus=True)
 
-                self._five_four_dp = round(self.dp - (dp_flex * dp_eff) - turtle, 2)  ## hier moet nog de turtle vanaf
-                self._five_four_op = round(5 / 4 * self._five_four_dp, 2)
+                # so max DP is dp minus turtle
+
+                max_dp = self.dp - turtle
+                min_dp = dp_no_flex - turtle
+                diff_dp = max_dp - min_dp
+
+                max_op = self.op
+                min_op = op_no_flex
+                diff_op = max_op - min_op
+
+                # now determine the intersection between DP = 5/4 OP and the line through the flex unit
+                # and the origin
+                OP = lambda x: max_op - x * diff_op
+                DP = lambda x: min_dp + x * diff_dp
+                # now solve for x
+                # 5/4*(max_op - x * diff_op = min_dp + x * diff_dp
+                # 5/4 * max_op - 5/4 * x * diff_op = min_dp + x * diff_dp
+                # 5/4 * max_op - min_dp = x * (diff_dp + 5/4 * diff_op)
+                # x = (5/4 * max_op - min_dp) / (diff_dp + 5/4 * diff_op)
+                x = (5 / 4 * max_op - min_dp) / (diff_dp + 5 / 4 * diff_op)
+
+                if log:
+                    print(f"max_op: {max_op}, min_op: {min_op}, diff_op: {diff_op}, x: {x}")
+                    print(f"max_dp: {max_dp}, min_dp: {min_dp}, diff_dp: {diff_dp}, x: {x}")
+                    print(OP(x), DP(x))
+
+                # self._five_four_dp = round(self.dp - (dp_flex * dp_eff) - turtle, 2)  ## hier moet nog de turtle vanaf
+                # self._five_four_op = min(self.op, round(5 / 4 * self._five_four_dp, 2))
+                self._five_four_dp = round(DP(x), 2)
+                self._five_four_op = round(OP(x), 2)
+
             else:
                 self._five_four_op = trunc(self.op)
                 dp = self.dp
